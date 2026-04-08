@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import api from '../lib/api'
 import { useI18n } from '../i18n'
 
 interface Account { id: number; name: string }
 interface Zone { id: string; name: string; status: string; paused: boolean; name_servers: string[] }
 interface DNSRecord { id: string; type: string; name: string; content: string; ttl: number; proxied: boolean }
+
+const DNS_TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'NS', 'SRV', 'CAA']
 
 export default function Zones() {
   const { t } = useI18n()
@@ -15,6 +17,12 @@ export default function Zones() {
   const [records, setRecords] = useState<DNSRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [loadingRecords, setLoadingRecords] = useState(false)
+
+  const [showDnsForm, setShowDnsForm] = useState(false)
+  const [editingRecord, setEditingRecord] = useState<DNSRecord | null>(null)
+  const [dnsForm, setDnsForm] = useState({ type: 'A', name: '', content: '', ttl: 1, proxied: false })
+  const [dnsSubmitting, setDnsSubmitting] = useState(false)
+  const [dnsError, setDnsError] = useState('')
 
   useEffect(() => {
     api.get('/accounts').then((res) => {
@@ -35,14 +43,59 @@ export default function Zones() {
       .finally(() => setLoading(false))
   }, [selectedAccount])
 
-  useEffect(() => {
+  const loadRecords = () => {
     if (!selectedAccount || !selectedZone) return
     setLoadingRecords(true)
     api.get(`/cf/${selectedAccount}/zones/${selectedZone}/dns`)
       .then((res) => setRecords(res.data || []))
       .catch(() => setRecords([]))
       .finally(() => setLoadingRecords(false))
-  }, [selectedAccount, selectedZone])
+  }
+
+  useEffect(() => { loadRecords() }, [selectedAccount, selectedZone])
+
+  const resetDnsForm = () => {
+    setDnsForm({ type: 'A', name: '', content: '', ttl: 1, proxied: false })
+    setEditingRecord(null)
+    setShowDnsForm(false)
+    setDnsError('')
+  }
+
+  const startEditRecord = (record: DNSRecord) => {
+    setEditingRecord(record)
+    setDnsForm({ type: record.type, name: record.name, content: record.content, ttl: record.ttl, proxied: record.proxied })
+    setShowDnsForm(true)
+    setDnsError('')
+  }
+
+  const handleDnsSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!selectedAccount || !selectedZone) return
+    setDnsSubmitting(true)
+    setDnsError('')
+    try {
+      if (editingRecord) {
+        await api.put(`/cf/${selectedAccount}/zones/${selectedZone}/dns/${editingRecord.id}`, dnsForm)
+      } else {
+        await api.post(`/cf/${selectedAccount}/zones/${selectedZone}/dns`, dnsForm)
+      }
+      resetDnsForm()
+      loadRecords()
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t.common.failed
+      setDnsError(msg)
+    } finally {
+      setDnsSubmitting(false)
+    }
+  }
+
+  const handleDeleteRecord = async (recordId: string) => {
+    if (!selectedAccount || !selectedZone || !confirm(t.zones.deleteRecordConfirm)) return
+    try {
+      await api.delete(`/cf/${selectedAccount}/zones/${selectedZone}/dns/${recordId}`)
+      loadRecords()
+    } catch { /* ignore */ }
+  }
 
   return (
     <div className="py-8 md:py-12 px-4 md:px-8">
@@ -110,7 +163,90 @@ export default function Zones() {
 
         {selectedZone && (
           <div>
-            <h2 className="font-black text-xl md:text-3xl mb-4">{t.zones.dnsRecords}</h2>
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-4">
+              <h2 className="font-black text-xl md:text-3xl">{t.zones.dnsRecords}</h2>
+              <button
+                onClick={() => { if (showDnsForm) resetDnsForm(); else { setEditingRecord(null); setDnsForm({ type: 'A', name: '', content: '', ttl: 1, proxied: false }); setShowDnsForm(true) } }}
+                className="self-start sm:self-auto font-bold uppercase tracking-widest transition-all duration-200 bg-[#06d6a0] text-black px-4 py-2 border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] text-xs md:text-sm"
+              >
+                {showDnsForm ? t.common.cancel : t.zones.addRecord}
+              </button>
+            </div>
+
+            {showDnsForm && (
+              <div className="border-2 md:border-4 border-black bg-white p-4 md:p-8 mb-6">
+                <h3 className="font-black text-lg md:text-xl mb-4">
+                  {editingRecord ? t.zones.editRecord : t.zones.addRecord}
+                </h3>
+                {dnsError && (
+                  <div className="border-2 border-[#ff006e] bg-[#ff006e] text-white font-bold p-3 mb-4 text-sm font-mono">{dnsError}</div>
+                )}
+                <form onSubmit={handleDnsSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div>
+                    <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.zones.colType}</label>
+                    <select
+                      value={dnsForm.type}
+                      onChange={(e) => setDnsForm({ ...dnsForm, type: e.target.value })}
+                      className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm"
+                    >
+                      {DNS_TYPES.map((dt) => <option key={dt} value={dt}>{dt}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.zones.colName}</label>
+                    <input
+                      value={dnsForm.name}
+                      onChange={(e) => setDnsForm({ ...dnsForm, name: e.target.value })}
+                      className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
+                      placeholder={t.zones.namePlaceholder}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.zones.colContent}</label>
+                    <input
+                      value={dnsForm.content}
+                      onChange={(e) => setDnsForm({ ...dnsForm, content: e.target.value })}
+                      className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
+                      placeholder={t.zones.contentPlaceholder}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.zones.colTtl}</label>
+                    <input
+                      type="number"
+                      value={dnsForm.ttl}
+                      onChange={(e) => setDnsForm({ ...dnsForm, ttl: Number(e.target.value) })}
+                      className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
+                      placeholder={t.zones.ttlPlaceholder}
+                      min={1}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 font-mono text-sm">
+                      <input
+                        type="checkbox"
+                        checked={dnsForm.proxied}
+                        onChange={(e) => setDnsForm({ ...dnsForm, proxied: e.target.checked })}
+                        className="w-5 h-5 border-2 border-black accent-[#06d6a0]"
+                      />
+                      {t.zones.proxied}
+                    </label>
+                  </div>
+                  <div className="lg:col-span-3 flex gap-3">
+                    <button
+                      type="submit"
+                      disabled={dnsSubmitting}
+                      className="font-bold uppercase tracking-widest transition-all duration-200 bg-[#06d6a0] text-black px-6 py-3 border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[1px] hover:translate-y-[1px] text-sm disabled:opacity-80"
+                    >
+                      {dnsSubmitting ? t.zones.saving : (editingRecord ? t.common.save : t.common.create)}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
             {loadingRecords ? (
               <div className="border-2 md:border-4 border-black p-8 text-center font-mono">{t.zones.loadingRecords}</div>
             ) : records.length === 0 ? (
@@ -125,11 +261,12 @@ export default function Zones() {
                       <th className="font-black uppercase tracking-widest text-xs px-4 py-3">{t.zones.colContent}</th>
                       <th className="font-black uppercase tracking-widest text-xs px-4 py-3">{t.zones.colTtl}</th>
                       <th className="font-black uppercase tracking-widest text-xs px-4 py-3">{t.zones.colProxy}</th>
+                      <th className="font-black uppercase tracking-widest text-xs px-4 py-3">{t.common.actions}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {records.map((r) => (
-                      <tr key={r.id} className="border-t-2 border-black hover:bg-[#ffbe0b] transition-colors duration-200">
+                      <tr key={r.id} className="border-t-2 border-black hover:bg-[#ffbe0b]/20 transition-colors duration-200">
                         <td className="px-4 py-3 font-bold font-mono text-sm">
                           <span className="bg-black text-white px-2 py-0.5 text-xs">{r.type}</span>
                         </td>
@@ -140,6 +277,22 @@ export default function Zones() {
                           <span className={`font-bold ${r.proxied ? 'text-[#06d6a0]' : 'text-black'}`}>
                             {r.proxied ? t.zones.proxyOn : t.zones.proxyOff}
                           </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => startEditRecord(r)}
+                              className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-2 py-1 border-2 border-black text-xs hover:bg-[#3a86ff] hover:text-white"
+                            >
+                              {t.zones.editRecord}
+                            </button>
+                            <button
+                              onClick={() => handleDeleteRecord(r.id)}
+                              className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-2 py-1 border-2 border-black text-xs hover:bg-[#ff006e] hover:text-white"
+                            >
+                              {t.zones.deleteRecord}
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
