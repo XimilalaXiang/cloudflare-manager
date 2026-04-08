@@ -18,6 +18,7 @@ func SetupRouter(
 	kvService *services.KVService,
 	d1Service *services.D1Service,
 	r2Service *services.R2Service,
+	pagesService *services.PagesService,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -30,6 +31,7 @@ func SetupRouter(
 	kvHandler := NewKVHandler(kvService)
 	d1Handler := NewD1Handler(d1Service)
 	r2Handler := NewR2Handler(r2Service)
+	pagesHandler := NewPagesHandler(pagesService)
 
 	api := r.Group("/api")
 	{
@@ -101,12 +103,22 @@ func SetupRouter(
 					d1.POST("/databases/:databaseId/query", d1Handler.Query)
 				}
 
-				r2 := cf.Group("/r2")
-				{
-					r2.GET("/buckets", r2Handler.ListBuckets)
-					r2.POST("/buckets", r2Handler.CreateBucket)
-					r2.DELETE("/buckets/:bucketName", r2Handler.DeleteBucket)
-				}
+			r2 := cf.Group("/r2")
+			{
+				r2.GET("/buckets", r2Handler.ListBuckets)
+				r2.POST("/buckets", r2Handler.CreateBucket)
+				r2.DELETE("/buckets/:bucketName", r2Handler.DeleteBucket)
+			}
+
+			pages := cf.Group("/pages")
+			{
+				pages.GET("/projects", pagesHandler.ListProjects)
+				pages.POST("/projects", pagesHandler.CreateProject)
+				pages.GET("/projects/:projectName", pagesHandler.GetProject)
+				pages.DELETE("/projects/:projectName", pagesHandler.DeleteProject)
+				pages.GET("/projects/:projectName/deployments", pagesHandler.ListDeployments)
+				pages.DELETE("/projects/:projectName/deployments/:deploymentId", pagesHandler.DeleteDeployment)
+			}
 			}
 		}
 	}

@@ -24,6 +24,7 @@ export default function Navbar({ username, onLogout }: NavbarProps) {
     { to: '/zones', label: t.nav.zones },
     { to: '/storage', label: t.nav.storage },
     { to: '/routes', label: t.nav.routes },
+    { to: '/pages', label: t.nav.pages },
   ]
 
   const handleChangePw = async (e: FormEvent) => {

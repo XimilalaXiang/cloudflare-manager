@@ -30,6 +30,7 @@ func main() {
 	kvService := services.NewKVService(accountService)
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
+	pagesService := services.NewPagesService(accountService)
 
 	router := handlers.SetupRouter(
 		accountService,
@@ -39,6 +40,7 @@ func main() {
 		kvService,
 		d1Service,
 		r2Service,
+		pagesService,
 	)
 
 	log.Printf("Server starting on :%s", cfg.Port)

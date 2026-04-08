@@ -28,6 +28,7 @@ export interface Translations {
     zones: string
     storage: string
     routes: string
+    pages: string
     logout: string
     changePassword: string
   }
@@ -207,6 +208,37 @@ export interface Translations {
     bucketLocation: string
     deleteBucket: string
     creating: string
+  }
+  pages: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    loadingProjects: string
+    noProjects: string
+    noProjectsDescNoAccount: string
+    noProjectsDesc: string
+    createProject: string
+    projectName: string
+    productionBranch: string
+    branchPlaceholder: string
+    deleteProject: string
+    deleteConfirm: string
+    creating: string
+    subdomain: string
+    domains: string
+    deployments: string
+    loadingDeployments: string
+    noDeployments: string
+    deploymentId: string
+    environment: string
+    url: string
+    stage: string
+    created: string
+    deleteDeployment: string
+    deleteDeploymentConfirm: string
+    viewDeployments: string
+    hideDeployments: string
   }
   footer: {
     subtitle: string
