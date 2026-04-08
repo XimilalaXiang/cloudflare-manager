@@ -1,0 +1,132 @@
+export interface Translations {
+  common: {
+    loading: string
+    noData: string
+    confirm: string
+    cancel: string
+    delete: string
+    add: string
+    save: string
+    edit: string
+    verify: string
+    status: string
+    actions: string
+  }
+  nav: {
+    brand: string
+    brandSeparator: string
+    brandSuffix: string
+    dashboard: string
+    accounts: string
+    workers: string
+    zones: string
+    storage: string
+    logout: string
+  }
+  login: {
+    subtitle: string
+    username: string
+    password: string
+    usernamePlaceholder: string
+    passwordPlaceholder: string
+    signIn: string
+    signingIn: string
+    invalidCredentials: string
+  }
+  dashboard: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    manageAccounts: string
+    statAccounts: string
+    statActive: string
+    statInactive: string
+    accountsTitle: string
+    noAccountsTitle: string
+    noAccountsDesc: string
+    addAccount: string
+    token: string
+  }
+  accounts: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    addAccount: string
+    cancelAdd: string
+    newAccount: string
+    fieldName: string
+    fieldEmail: string
+    fieldAccountId: string
+    fieldApiToken: string
+    namePlaceholder: string
+    emailPlaceholder: string
+    accountIdPlaceholder: string
+    apiTokenPlaceholder: string
+    adding: string
+    noAccounts: string
+    noAccountsDesc: string
+    deleteConfirm: string
+    verifySuccess: string
+    verifyFailed: string
+    failedToAdd: string
+  }
+  workers: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    loadingWorkers: string
+    noWorkers: string
+    noWorkersDescNoAccount: string
+    noWorkersDesc: string
+    size: string
+    created: string
+    modified: string
+  }
+  zones: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    loadingZones: string
+    noZones: string
+    noZonesDescNoAccount: string
+    noZonesDesc: string
+    paused: string
+    dnsRecords: string
+    loadingRecords: string
+    noRecords: string
+    colType: string
+    colName: string
+    colContent: string
+    colTtl: string
+    colProxy: string
+    ttlAuto: string
+    proxyOn: string
+    proxyOff: string
+  }
+  storage: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    tabKv: string
+    tabD1: string
+    tabR2: string
+    noKv: string
+    noD1: string
+    noR2: string
+    noStorageDescNoAccount: string
+    noStorageDesc: (tab: string) => string
+    kvId: string
+    d1Uuid: string
+    d1Tables: string
+    d1Size: string
+    r2Location: string
+    r2LocationDefault: string
+  }
+  footer: {
+    subtitle: string
+    tech: string
+  }
+}

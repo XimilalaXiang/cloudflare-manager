@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react'
+import { useI18n } from '../i18n'
 
 interface LoginProps {
   onLogin: (username: string, password: string) => Promise<void>
 }
 
 export default function Login({ onLogin }: LoginProps) {
+  const { t, locale, toggle } = useI18n()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -17,7 +19,7 @@ export default function Login({ onLogin }: LoginProps) {
     try {
       await onLogin(username, password)
     } catch {
-      setError('Invalid credentials')
+      setError(t.login.invalidCredentials)
     } finally {
       setLoading(false)
     }
@@ -32,13 +34,21 @@ export default function Login({ onLogin }: LoginProps) {
         <div className="absolute top-[5%] right-[20%] w-20 h-20 md:w-40 md:h-40 border-4 border-black rotate-45" />
       </div>
 
+      <button
+        onClick={toggle}
+        className="absolute top-4 right-4 z-20 font-bold tracking-widest transition-all duration-200 bg-white text-black px-3 py-1.5 border-2 border-black text-xs hover:bg-[#ffbe0b] active:scale-95"
+        title={locale === 'en' ? '切换到中文' : 'Switch to English'}
+      >
+        {locale === 'en' ? '中文' : 'EN'}
+      </button>
+
       <div className="relative z-10 w-full max-w-md">
         <div className="border-2 md:border-4 border-black bg-white p-6 md:p-10">
           <h1 className="font-black text-3xl md:text-5xl tracking-tight mb-2">
             CF<span className="text-[#ff006e]">/</span>MANAGER
           </h1>
           <p className="font-mono text-sm md:text-base mb-8 text-black">
-            Multi-account Cloudflare management
+            {t.login.subtitle}
           </p>
 
           {error && (
@@ -50,27 +60,27 @@ export default function Login({ onLogin }: LoginProps) {
           <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div>
               <label className="font-black uppercase tracking-widest text-xs mb-2 block">
-                USERNAME
+                {t.login.username}
               </label>
               <input
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm md:text-base"
-                placeholder="admin"
+                placeholder={t.login.usernamePlaceholder}
                 required
               />
             </div>
             <div>
               <label className="font-black uppercase tracking-widest text-xs mb-2 block">
-                PASSWORD
+                {t.login.password}
               </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm md:text-base"
-                placeholder="••••••••"
+                placeholder={t.login.passwordPlaceholder}
                 required
               />
             </div>
@@ -79,7 +89,7 @@ export default function Login({ onLogin }: LoginProps) {
               disabled={loading}
               className="w-full font-bold uppercase tracking-widest transition-all duration-200 bg-black text-white px-4 py-3 md:px-6 md:py-4 border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(255,0,110,1)] md:shadow-[8px_8px_0px_0px_rgba(255,0,110,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] active:scale-95 text-sm md:text-base disabled:opacity-80"
             >
-              {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              {loading ? t.login.signingIn : t.login.signIn}
             </button>
           </form>
         </div>
