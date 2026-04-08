@@ -16,7 +16,7 @@ Cloudflare Manager 是一个**自托管的多账户 Cloudflare 管理平台**，
 | 后端 | Go 1.25 + Gin |
 | 数据库 | SQLite + GORM |
 | 前端 | React + Vite + Tailwind CSS |
-| CF SDK | cloudflare-go v0.116.0 |
+| CF SDK | cloudflare-go v6 |
 | 认证 | JWT + bcrypt |
 | 加密 | AES-256-GCM |
 
@@ -27,8 +27,10 @@ Cloudflare Manager 是一个**自托管的多账户 Cloudflare 管理平台**，
 | 认证（登录、修改密码）| ✅ | ✅ |
 | 账户增删改查 + 验证 | ✅ | ✅ |
 | Workers（列表、部署、查看代码、删除）| ✅ | ✅ |
+| Worker 版本与部署状态 | ✅ | ✅ |
 | 域名与 DNS（列表、创建、编辑、删除）| ✅ | ✅ |
 | Worker 路由（列表、创建、删除）| ✅ | ✅ |
+| Pages（项目、部署）| ✅ | ✅ |
 | KV（命名空间、键值对）| ✅ | ✅ |
 | D1（数据库、SQL 查询）| ✅ | ✅ |
 | R2（存储桶）| ✅ | ✅ |

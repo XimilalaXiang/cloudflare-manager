@@ -31,6 +31,7 @@ export default defineConfig({
                 { text: 'Account Management', link: '/guide/accounts' },
                 { text: 'Workers', link: '/guide/workers' },
                 { text: 'Zones & DNS', link: '/guide/zones' },
+                { text: 'Pages', link: '/guide/pages' },
                 { text: 'Storage (KV/D1/R2)', link: '/guide/storage' }
               ]
             },
@@ -52,6 +53,7 @@ export default defineConfig({
                 { text: 'Workers', link: '/api/workers' },
                 { text: 'Zones & DNS', link: '/api/zones' },
                 { text: 'Worker Routes', link: '/api/routes' },
+                { text: 'Pages', link: '/api/pages' },
                 { text: 'KV Storage', link: '/api/kv' },
                 { text: 'D1 Database', link: '/api/d1' },
                 { text: 'R2 Storage', link: '/api/r2' }
@@ -87,6 +89,7 @@ export default defineConfig({
                 { text: '账户管理', link: '/zh/guide/accounts' },
                 { text: 'Workers', link: '/zh/guide/workers' },
                 { text: '域名与 DNS', link: '/zh/guide/zones' },
+                { text: 'Pages', link: '/zh/guide/pages' },
                 { text: '存储 (KV/D1/R2)', link: '/zh/guide/storage' }
               ]
             },
@@ -108,6 +111,7 @@ export default defineConfig({
                 { text: 'Workers', link: '/zh/api/workers' },
                 { text: '域名与 DNS', link: '/zh/api/zones' },
                 { text: 'Worker 路由', link: '/zh/api/routes' },
+                { text: 'Pages', link: '/zh/api/pages' },
                 { text: 'KV 存储', link: '/zh/api/kv' },
                 { text: 'D1 数据库', link: '/zh/api/d1' },
                 { text: 'R2 存储', link: '/zh/api/r2' }
