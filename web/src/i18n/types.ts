@@ -11,6 +11,12 @@ export interface Translations {
     verify: string
     status: string
     actions: string
+    success: string
+    failed: string
+    close: string
+    create: string
+    name: string
+    deleteConfirm: string
   }
   nav: {
     brand: string
@@ -21,7 +27,9 @@ export interface Translations {
     workers: string
     zones: string
     storage: string
+    routes: string
     logout: string
+    changePassword: string
   }
   login: {
     subtitle: string
@@ -32,6 +40,17 @@ export interface Translations {
     signIn: string
     signingIn: string
     invalidCredentials: string
+  }
+  changePassword: {
+    title: string
+    oldPassword: string
+    newPassword: string
+    confirmPassword: string
+    submit: string
+    submitting: string
+    success: string
+    mismatch: string
+    minLength: string
   }
   dashboard: {
     title: string
@@ -54,6 +73,7 @@ export interface Translations {
     addAccount: string
     cancelAdd: string
     newAccount: string
+    editAccount: string
     fieldName: string
     fieldEmail: string
     fieldAccountId: string
@@ -62,13 +82,16 @@ export interface Translations {
     emailPlaceholder: string
     accountIdPlaceholder: string
     apiTokenPlaceholder: string
+    apiTokenUpdateHint: string
     adding: string
+    saving: string
     noAccounts: string
     noAccountsDesc: string
     deleteConfirm: string
     verifySuccess: string
     verifyFailed: string
     failedToAdd: string
+    failedToUpdate: string
   }
   workers: {
     title: string
@@ -82,6 +105,16 @@ export interface Translations {
     size: string
     created: string
     modified: string
+    viewCode: string
+    deploy: string
+    deleteWorker: string
+    deleteConfirm: string
+    code: string
+    deployTitle: string
+    scriptName: string
+    content: string
+    moduleFormat: string
+    deploying: string
   }
   zones: {
     title: string
@@ -104,6 +137,34 @@ export interface Translations {
     ttlAuto: string
     proxyOn: string
     proxyOff: string
+    addRecord: string
+    editRecord: string
+    deleteRecord: string
+    deleteRecordConfirm: string
+    typePlaceholder: string
+    namePlaceholder: string
+    contentPlaceholder: string
+    ttlPlaceholder: string
+    proxied: string
+    saving: string
+  }
+  routes: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    selectZone: string
+    loadingRoutes: string
+    noRoutes: string
+    noRoutesDesc: string
+    addRoute: string
+    deleteRoute: string
+    deleteConfirm: string
+    pattern: string
+    patternPlaceholder: string
+    script: string
+    scriptPlaceholder: string
+    creating: string
   }
   storage: {
     title: string
@@ -124,6 +185,28 @@ export interface Translations {
     d1Size: string
     r2Location: string
     r2LocationDefault: string
+    createNamespace: string
+    namespaceName: string
+    deleteNamespace: string
+    deleteConfirm: string
+    viewKeys: string
+    keys: string
+    keyName: string
+    keyValue: string
+    addKey: string
+    deleteKey: string
+    createDatabase: string
+    databaseName: string
+    deleteDatabase: string
+    queryDatabase: string
+    sqlQuery: string
+    runQuery: string
+    queryResult: string
+    createBucket: string
+    bucketName: string
+    bucketLocation: string
+    deleteBucket: string
+    creating: string
   }
   footer: {
     subtitle: string
