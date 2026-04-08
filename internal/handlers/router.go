@@ -1,6 +1,10 @@
 package handlers
 
 import (
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"github.com/gin-gonic/gin"
 	"github.com/ximilala/cloudflare-manager/internal/middleware"
 	"github.com/ximilala/cloudflare-manager/internal/services"
@@ -105,6 +109,20 @@ func SetupRouter(
 				}
 			}
 		}
+	}
+
+	webDist := "web/dist"
+	if _, err := os.Stat(webDist); err == nil {
+		r.Static("/assets", filepath.Join(webDist, "assets"))
+		r.StaticFile("/favicon.svg", filepath.Join(webDist, "favicon.svg"))
+
+		r.NoRoute(func(c *gin.Context) {
+			c.File(filepath.Join(webDist, "index.html"))
+		})
+	} else {
+		r.NoRoute(func(c *gin.Context) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		})
 	}
 
 	return r

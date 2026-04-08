@@ -7,3 +7,5 @@ data/
 vendor/
 coverage.out
 _site/
+web/node_modules/
+web/dist/

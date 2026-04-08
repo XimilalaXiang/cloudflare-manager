@@ -1,0 +1,18 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-black antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-black uppercase tracking-tight;
+  }
+  ::selection {
+    @apply bg-black text-white;
+  }
+}

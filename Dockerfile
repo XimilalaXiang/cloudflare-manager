@@ -1,3 +1,11 @@
+FROM node:22-alpine AS frontend
+
+WORKDIR /web
+COPY web/package*.json ./
+RUN npm ci
+COPY web/ .
+RUN npm run build
+
 FROM golang:1.25-alpine AS builder
 
 RUN apk add --no-cache gcc musl-dev
@@ -14,6 +22,7 @@ RUN apk add --no-cache ca-certificates tzdata
 
 WORKDIR /app
 COPY --from=builder /app/server .
+COPY --from=frontend /web/dist ./web/dist
 
 RUN mkdir -p /app/data
 
