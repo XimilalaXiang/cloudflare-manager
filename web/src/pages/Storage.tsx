@@ -39,7 +39,7 @@ export default function Storage() {
   const [dbCreating, setDbCreating] = useState(false)
   const [queryDbId, setQueryDbId] = useState<string | null>(null)
   const [sqlQuery, setSqlQuery] = useState('')
-  const [queryResult, setQueryResult] = useState<unknown>(null)
+  const [queryResult, setQueryResult] = useState<Record<string, unknown> | null>(null)
   const [querying, setQuerying] = useState(false)
 
   // R2 state
