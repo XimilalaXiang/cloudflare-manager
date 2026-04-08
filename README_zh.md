@@ -34,6 +34,12 @@
 - 查看项目详情（域名、生产分支）
 - 列出和删除 Pages 部署
 
+### 邮件路由
+- 按域名启用/禁用邮件路由
+- 创建、列出、删除路由规则（转发、丢弃等）
+- 管理目标地址（账户级别）
+- 查看全匹配规则
+
 ### 存储
 - **KV** — 管理命名空间；列出、读取、写入、删除键值对
 - **D1** — 创建/删除数据库；执行 SQL 查询
@@ -186,6 +192,20 @@ go build -o server ./cmd/server
 | GET | `/api/cf/:accountId/r2/buckets` | 列出存储桶 |
 | POST | `/api/cf/:accountId/r2/buckets` | 创建存储桶 |
 | DELETE | `/api/cf/:accountId/r2/buckets/:bucketName` | 删除存储桶 |
+
+### 邮件路由
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/cf/:accountId/email-routing/addresses` | 列出目标地址 |
+| POST | `/api/cf/:accountId/email-routing/addresses` | 添加目标地址 |
+| DELETE | `/api/cf/:accountId/email-routing/addresses/:id` | 删除目标地址 |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/settings` | 获取设置 |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/enable` | 启用 |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/disable` | 禁用 |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/rules` | 列出规则 |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/rules` | 创建规则 |
+| DELETE | `/api/cf/:accountId/email-routing/zones/:zoneId/rules/:id` | 删除规则 |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/catch-all` | 获取全匹配规则 |
 
 ## 项目结构
 

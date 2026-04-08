@@ -32,6 +32,7 @@ export default defineConfig({
                 { text: 'Workers', link: '/guide/workers' },
                 { text: 'Zones & DNS', link: '/guide/zones' },
                 { text: 'Pages', link: '/guide/pages' },
+                { text: 'Email Routing', link: '/guide/email-routing' },
                 { text: 'Storage (KV/D1/R2)', link: '/guide/storage' }
               ]
             },
@@ -56,7 +57,8 @@ export default defineConfig({
                 { text: 'Pages', link: '/api/pages' },
                 { text: 'KV Storage', link: '/api/kv' },
                 { text: 'D1 Database', link: '/api/d1' },
-                { text: 'R2 Storage', link: '/api/r2' }
+                { text: 'R2 Storage', link: '/api/r2' },
+                { text: 'Email Routing', link: '/api/email-routing' }
               ]
             }
           ]
@@ -90,6 +92,7 @@ export default defineConfig({
                 { text: 'Workers', link: '/zh/guide/workers' },
                 { text: '域名与 DNS', link: '/zh/guide/zones' },
                 { text: 'Pages', link: '/zh/guide/pages' },
+                { text: '邮件路由', link: '/zh/guide/email-routing' },
                 { text: '存储 (KV/D1/R2)', link: '/zh/guide/storage' }
               ]
             },
@@ -114,7 +117,8 @@ export default defineConfig({
                 { text: 'Pages', link: '/zh/api/pages' },
                 { text: 'KV 存储', link: '/zh/api/kv' },
                 { text: 'D1 数据库', link: '/zh/api/d1' },
-                { text: 'R2 存储', link: '/zh/api/r2' }
+                { text: 'R2 存储', link: '/zh/api/r2' },
+                { text: '邮件路由', link: '/zh/api/email-routing' }
               ]
             }
           ]

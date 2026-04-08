@@ -90,6 +90,20 @@ Base URL: `http://localhost:8080/api`
 | POST | `/cf/:accountId/r2/buckets` | Create bucket |
 | DELETE | `/cf/:accountId/r2/buckets/:name` | Delete bucket |
 
+### Email Routing
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/cf/:accountId/email-routing/addresses` | List destination addresses |
+| POST | `/cf/:accountId/email-routing/addresses` | Add destination address |
+| DELETE | `/cf/:accountId/email-routing/addresses/:id` | Delete destination address |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/settings` | Get settings |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/enable` | Enable |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/disable` | Disable |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/rules` | List rules |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/rules` | Create rule |
+| DELETE | `/cf/:accountId/email-routing/zones/:zoneId/rules/:id` | Delete rule |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/catch-all` | Get catch-all |
+
 ## Error Format
 
 ```json

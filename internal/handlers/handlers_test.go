@@ -70,8 +70,10 @@ func setupTestRouter(t *testing.T) (*httptest.Server, string) {
 	kvService := services.NewKVService(accountService)
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
+	pagesService := services.NewPagesService(accountService)
+	emailRoutingService := services.NewEmailRoutingService(accountService)
 
-	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service)
+	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service, pagesService, emailRoutingService)
 	server := httptest.NewServer(router)
 
 	token := getTestToken(t, "admin", "password123")
@@ -91,7 +93,9 @@ func TestLoginSuccess(t *testing.T) {
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
 
-	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service)
+	pagesService := services.NewPagesService(accountService)
+	emailRoutingService := services.NewEmailRoutingService(accountService)
+	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service, pagesService, emailRoutingService)
 
 	createTestUser(t, "admin", "password123")
 
@@ -129,7 +133,9 @@ func TestLoginInvalidCredentials(t *testing.T) {
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
 
-	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service)
+	pagesService := services.NewPagesService(accountService)
+	emailRoutingService := services.NewEmailRoutingService(accountService)
+	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service, pagesService, emailRoutingService)
 
 	createTestUser(t, "admin", "password123")
 
@@ -161,7 +167,9 @@ func TestLoginMissingFields(t *testing.T) {
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
 
-	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service)
+	pagesService := services.NewPagesService(accountService)
+	emailRoutingService := services.NewEmailRoutingService(accountService)
+	router := SetupRouter(accountService, workerService, zoneService, routeService, kvService, d1Service, r2Service, pagesService, emailRoutingService)
 
 	body, _ := json.Marshal(map[string]string{
 		"username": "admin",

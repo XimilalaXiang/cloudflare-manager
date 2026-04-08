@@ -36,4 +36,5 @@ Managing multiple Cloudflare accounts through the official dashboard is tedious.
 | KV (namespaces, keys, values) | ✅ | ✅ |
 | D1 (databases, SQL query) | ✅ | ✅ |
 | R2 (buckets) | ✅ | ✅ |
+| Email Routing (rules, addresses, catch-all) | ✅ | ✅ |
 | i18n (English / Chinese) | — | ✅ |

@@ -34,6 +34,12 @@ English | [中文](README_zh.md)
 - View project details (domains, production branch)
 - List and delete Pages deployments
 
+### Email Routing
+- Enable/disable email routing per zone
+- Create, list, and delete routing rules (forward, drop, etc.)
+- Manage destination addresses (account-level)
+- View catch-all rule
+
 ### Storage
 - **KV** — Manage namespaces; list, get, put, and delete key-value pairs
 - **D1** — Create/delete databases; execute SQL queries
@@ -186,6 +192,20 @@ Full API documentation is available via [VitePress docs](docs/) (`cd docs && npm
 | GET | `/api/cf/:accountId/r2/buckets` | List buckets |
 | POST | `/api/cf/:accountId/r2/buckets` | Create bucket |
 | DELETE | `/api/cf/:accountId/r2/buckets/:bucketName` | Delete bucket |
+
+### Email Routing
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/cf/:accountId/email-routing/addresses` | List destination addresses |
+| POST | `/api/cf/:accountId/email-routing/addresses` | Add destination address |
+| DELETE | `/api/cf/:accountId/email-routing/addresses/:id` | Delete destination address |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/settings` | Get settings |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/enable` | Enable |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/disable` | Disable |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/rules` | List rules |
+| POST | `/api/cf/:accountId/email-routing/zones/:zoneId/rules` | Create rule |
+| DELETE | `/api/cf/:accountId/email-routing/zones/:zoneId/rules/:id` | Delete rule |
+| GET | `/api/cf/:accountId/email-routing/zones/:zoneId/catch-all` | Get catch-all |
 
 ## Project Structure
 

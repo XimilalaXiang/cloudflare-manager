@@ -90,6 +90,20 @@ Authorization: Bearer <your-token>
 | POST | `/cf/:accountId/r2/buckets` | 创建存储桶 |
 | DELETE | `/cf/:accountId/r2/buckets/:name` | 删除存储桶 |
 
+### 邮件路由
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/cf/:accountId/email-routing/addresses` | 列出目标地址 |
+| POST | `/cf/:accountId/email-routing/addresses` | 添加目标地址 |
+| DELETE | `/cf/:accountId/email-routing/addresses/:id` | 删除目标地址 |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/settings` | 获取设置 |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/enable` | 启用 |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/disable` | 禁用 |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/rules` | 列出规则 |
+| POST | `/cf/:accountId/email-routing/zones/:zoneId/rules` | 创建规则 |
+| DELETE | `/cf/:accountId/email-routing/zones/:zoneId/rules/:id` | 删除规则 |
+| GET | `/cf/:accountId/email-routing/zones/:zoneId/catch-all` | 获取全匹配规则 |
+
 ## 错误格式
 
 ```json

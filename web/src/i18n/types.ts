@@ -29,6 +29,7 @@ export interface Translations {
     storage: string
     routes: string
     pages: string
+    email: string
     logout: string
     changePassword: string
   }
@@ -255,6 +256,52 @@ export interface Translations {
     deleteDeploymentConfirm: string
     viewDeployments: string
     hideDeployments: string
+  }
+  emailRouting: {
+    title: string
+    titleHighlight: string
+    subtitle: string
+    selectAccount: string
+    selectZone: string
+    loadingSettings: string
+    enabled: string
+    disabled: string
+    enable: string
+    disable: string
+    enableConfirm: string
+    disableConfirm: string
+    settingsTitle: string
+    rulesTitle: string
+    loadingRules: string
+    noRules: string
+    addRule: string
+    deleteRule: string
+    deleteRuleConfirm: string
+    ruleName: string
+    ruleNamePlaceholder: string
+    priority: string
+    matcherType: string
+    matcherField: string
+    matcherValue: string
+    actionType: string
+    actionValue: string
+    actionValuePlaceholder: string
+    creating: string
+    addressesTitle: string
+    loadingAddresses: string
+    noAddresses: string
+    addAddress: string
+    deleteAddress: string
+    deleteAddressConfirm: string
+    emailPlaceholder: string
+    verified: string
+    unverified: string
+    catchAllTitle: string
+    loadingCatchAll: string
+    noZoneSelected: string
+    noZoneSelectedDesc: string
+    noAccountSelected: string
+    noAccountSelectedDesc: string
   }
   footer: {
     subtitle: string

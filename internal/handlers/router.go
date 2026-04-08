@@ -19,6 +19,7 @@ func SetupRouter(
 	d1Service *services.D1Service,
 	r2Service *services.R2Service,
 	pagesService *services.PagesService,
+	emailRoutingService *services.EmailRoutingService,
 ) *gin.Engine {
 	r := gin.Default()
 	r.Use(middleware.CORS())
@@ -32,6 +33,7 @@ func SetupRouter(
 	d1Handler := NewD1Handler(d1Service)
 	r2Handler := NewR2Handler(r2Service)
 	pagesHandler := NewPagesHandler(pagesService)
+	emailRoutingHandler := NewEmailRoutingHandler(emailRoutingService)
 
 	api := r.Group("/api")
 	{
@@ -120,6 +122,24 @@ func SetupRouter(
 				pages.DELETE("/projects/:projectName", pagesHandler.DeleteProject)
 				pages.GET("/projects/:projectName/deployments", pagesHandler.ListDeployments)
 				pages.DELETE("/projects/:projectName/deployments/:deploymentId", pagesHandler.DeleteDeployment)
+			}
+
+			emailRouting := cf.Group("/email-routing")
+			{
+				emailRouting.GET("/addresses", emailRoutingHandler.ListAddresses)
+				emailRouting.POST("/addresses", emailRoutingHandler.CreateAddress)
+				emailRouting.DELETE("/addresses/:addressId", emailRoutingHandler.DeleteAddress)
+
+				zoneEmail := emailRouting.Group("/zones/:zoneId")
+				{
+					zoneEmail.GET("/settings", emailRoutingHandler.GetSettings)
+					zoneEmail.POST("/enable", emailRoutingHandler.Enable)
+					zoneEmail.POST("/disable", emailRoutingHandler.Disable)
+					zoneEmail.GET("/rules", emailRoutingHandler.ListRules)
+					zoneEmail.POST("/rules", emailRoutingHandler.CreateRule)
+					zoneEmail.DELETE("/rules/:ruleId", emailRoutingHandler.DeleteRule)
+					zoneEmail.GET("/catch-all", emailRoutingHandler.GetCatchAll)
+				}
 			}
 			}
 		}

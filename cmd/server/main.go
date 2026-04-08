@@ -31,6 +31,7 @@ func main() {
 	d1Service := services.NewD1Service(accountService)
 	r2Service := services.NewR2Service(accountService)
 	pagesService := services.NewPagesService(accountService)
+	emailRoutingService := services.NewEmailRoutingService(accountService)
 
 	router := handlers.SetupRouter(
 		accountService,
@@ -41,6 +42,7 @@ func main() {
 		d1Service,
 		r2Service,
 		pagesService,
+		emailRoutingService,
 	)
 
 	log.Printf("Server starting on :%s", cfg.Port)
