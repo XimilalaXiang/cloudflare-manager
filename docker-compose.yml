@@ -1,6 +1,6 @@
 services:
   cloudflare-manager:
-    build: .
+    image: ghcr.io/ximilalaxiang/cloudflare-manager:latest
     container_name: cloudflare-manager
     restart: unless-stopped
     ports:
