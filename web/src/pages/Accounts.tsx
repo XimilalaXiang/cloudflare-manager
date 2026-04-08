@@ -16,6 +16,7 @@ export default function Accounts() {
   const [accounts, setAccounts] = useState<Account[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [editingAccount, setEditingAccount] = useState<Account | null>(null)
   const [form, setForm] = useState({ name: '', email: '', account_id: '', api_token: '' })
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
@@ -26,17 +27,36 @@ export default function Accounts() {
 
   useEffect(() => { loadAccounts() }, [])
 
+  const resetForm = () => {
+    setForm({ name: '', email: '', account_id: '', api_token: '' })
+    setEditingAccount(null)
+    setShowForm(false)
+    setError('')
+  }
+
+  const startEdit = (account: Account) => {
+    setEditingAccount(account)
+    setForm({ name: account.name, email: account.email, account_id: account.account_id, api_token: '' })
+    setShowForm(true)
+    setError('')
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setSubmitting(true)
     setError('')
     try {
-      await api.post('/accounts', form)
-      setForm({ name: '', email: '', account_id: '', api_token: '' })
-      setShowForm(false)
+      if (editingAccount) {
+        const payload: Record<string, string> = { name: form.name, email: form.email }
+        if (form.api_token) payload.api_token = form.api_token
+        await api.put(`/accounts/${editingAccount.id}`, payload)
+      } else {
+        await api.post('/accounts', form)
+      }
+      resetForm()
       loadAccounts()
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || t.accounts.failedToAdd
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || (editingAccount ? t.accounts.failedToUpdate : t.accounts.failedToAdd)
       setError(msg)
     } finally {
       setSubmitting(false)
@@ -72,7 +92,7 @@ export default function Accounts() {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { if (showForm) resetForm(); else { setEditingAccount(null); setForm({ name: '', email: '', account_id: '', api_token: '' }); setShowForm(true) } }}
             className="self-start sm:self-auto font-bold uppercase tracking-widest transition-all duration-200 bg-black text-white px-4 py-2 md:px-6 md:py-3 border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(58,134,255,1)] md:shadow-[8px_8px_0px_0px_rgba(58,134,255,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] text-xs md:text-sm"
           >
             {showForm ? t.accounts.cancelAdd : t.accounts.addAccount}
@@ -81,7 +101,9 @@ export default function Accounts() {
 
         {showForm && (
           <div className="border-2 md:border-4 border-black bg-white p-4 md:p-8 mb-8">
-            <h2 className="font-black text-xl md:text-2xl mb-4 md:mb-6">{t.accounts.newAccount}</h2>
+            <h2 className="font-black text-xl md:text-2xl mb-4 md:mb-6">
+              {editingAccount ? t.accounts.editAccount : t.accounts.newAccount}
+            </h2>
             {error && (
               <div className="border-2 border-[#ff006e] bg-[#ff006e] text-white font-bold p-3 mb-4 text-sm font-mono">
                 {error}
@@ -107,16 +129,18 @@ export default function Accounts() {
                   placeholder={t.accounts.emailPlaceholder}
                 />
               </div>
-              <div>
-                <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.accounts.fieldAccountId}</label>
-                <input
-                  value={form.account_id}
-                  onChange={(e) => setForm({ ...form, account_id: e.target.value })}
-                  className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
-                  placeholder={t.accounts.accountIdPlaceholder}
-                  required
-                />
-              </div>
+              {!editingAccount && (
+                <div>
+                  <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.accounts.fieldAccountId}</label>
+                  <input
+                    value={form.account_id}
+                    onChange={(e) => setForm({ ...form, account_id: e.target.value })}
+                    className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
+                    placeholder={t.accounts.accountIdPlaceholder}
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <label className="font-black uppercase tracking-widest text-xs mb-1 block">{t.accounts.fieldApiToken}</label>
                 <input
@@ -124,8 +148,8 @@ export default function Accounts() {
                   value={form.api_token}
                   onChange={(e) => setForm({ ...form, api_token: e.target.value })}
                   className="w-full border-2 md:border-4 border-black bg-white font-medium focus:outline-none focus:bg-[#ffbe0b] transition-colors duration-200 px-3 py-2 md:px-4 md:py-3 text-sm font-mono"
-                  placeholder={t.accounts.apiTokenPlaceholder}
-                  required
+                  placeholder={editingAccount ? t.accounts.apiTokenUpdateHint : t.accounts.apiTokenPlaceholder}
+                  required={!editingAccount}
                 />
               </div>
               <div className="md:col-span-2">
@@ -134,7 +158,7 @@ export default function Accounts() {
                   disabled={submitting}
                   className="font-bold uppercase tracking-widest transition-all duration-200 bg-[#3a86ff] text-white px-6 py-3 border-2 md:border-4 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] md:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] active:scale-95 text-sm disabled:opacity-80"
                 >
-                  {submitting ? t.accounts.adding : t.accounts.addAccount}
+                  {submitting ? (editingAccount ? t.accounts.saving : t.accounts.adding) : (editingAccount ? t.common.save : t.accounts.addAccount)}
                 </button>
               </div>
             </form>
@@ -174,6 +198,12 @@ export default function Accounts() {
                   </p>
                 </div>
                 <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => startEdit(account)}
+                    className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-3 py-1.5 border-2 border-black text-xs hover:bg-[#3a86ff] hover:text-white"
+                  >
+                    {t.common.edit}
+                  </button>
                   <button
                     onClick={() => handleVerify(account.id)}
                     className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-3 py-1.5 border-2 border-black text-xs hover:bg-[#ffbe0b]"
