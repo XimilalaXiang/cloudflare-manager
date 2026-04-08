@@ -5,3 +5,5 @@ data/
 /server
 *.exe
 vendor/
+coverage.out
+_site/
