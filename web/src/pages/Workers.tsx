@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, useCallback, type FormEvent } from 'react'
 import api from '../lib/api'
 import { useI18n } from '../i18n'
 
@@ -35,6 +35,25 @@ export default function Workers() {
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [deployment, setDeployment] = useState<WorkerDeployment | null>(null)
   const [loadingDeployment, setLoadingDeployment] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  const handleCopyCode = useCallback(async () => {
+    if (!codeModal?.code) return
+    try {
+      await navigator.clipboard.writeText(codeModal.code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const textarea = document.createElement('textarea')
+      textarea.value = codeModal.code
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }, [codeModal])
 
   useEffect(() => {
     api.get('/accounts').then((res) => {
@@ -346,12 +365,24 @@ export default function Workers() {
           <div className="bg-white border-2 md:border-4 border-black w-full max-w-4xl max-h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 md:p-6 border-b-2 md:border-b-4 border-black">
               <h2 className="font-black text-lg md:text-xl truncate pr-4">{codeModal.name}</h2>
-              <button
-                onClick={() => setCodeModal(null)}
-                className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-3 py-1.5 border-2 border-black text-xs hover:bg-black hover:text-white flex-shrink-0"
-              >
-                {t.common.close}
-              </button>
+              <div className="flex gap-2 flex-shrink-0">
+                <button
+                  onClick={handleCopyCode}
+                  className={`font-bold uppercase tracking-widest transition-all duration-200 px-3 py-1.5 border-2 border-black text-xs ${
+                    copied
+                      ? 'bg-[#06d6a0] text-black'
+                      : 'bg-[#3a86ff] text-white hover:bg-[#2563eb]'
+                  }`}
+                >
+                  {copied ? t.workers.copied : t.workers.copyCode}
+                </button>
+                <button
+                  onClick={() => setCodeModal(null)}
+                  className="font-bold uppercase tracking-widest transition-colors duration-200 bg-white text-black px-3 py-1.5 border-2 border-black text-xs hover:bg-black hover:text-white"
+                >
+                  {t.common.close}
+                </button>
+              </div>
             </div>
             <pre className="flex-1 overflow-auto bg-[#1a1a2e] text-[#06d6a0] p-4 md:p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap">
               {codeModal.code}

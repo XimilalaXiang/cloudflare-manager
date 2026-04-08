@@ -135,6 +135,8 @@ const zh: Translations = {
     deploymentVersions: '部署版本',
     percentage: '流量比例',
     message: '描述',
+    copyCode: '复制',
+    copied: '已复制！',
   },
   zones: {
     title: '域',

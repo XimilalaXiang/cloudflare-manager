@@ -133,6 +133,8 @@ export interface Translations {
     deploymentVersions: string
     percentage: string
     message: string
+    copyCode: string
+    copied: string
   }
   zones: {
     title: string

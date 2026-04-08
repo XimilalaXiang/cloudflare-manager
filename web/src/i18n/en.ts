@@ -135,6 +135,8 @@ const en: Translations = {
     deploymentVersions: 'Deployed Versions',
     percentage: 'Traffic',
     message: 'Message',
+    copyCode: 'COPY',
+    copied: 'COPIED!',
   },
   zones: {
     title: 'ZO',
