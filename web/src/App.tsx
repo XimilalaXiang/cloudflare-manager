@@ -8,6 +8,7 @@ import Accounts from './pages/Accounts'
 import Workers from './pages/Workers'
 import Zones from './pages/Zones'
 import Storage from './pages/Storage'
+import RoutesPage from './pages/Routes'
 
 export default function App() {
   const { user, loading, login, logout } = useAuth()
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/workers" element={<Workers />} />
             <Route path="/zones" element={<Zones />} />
             <Route path="/storage" element={<Storage />} />
+            <Route path="/routes" element={<RoutesPage />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </main>
