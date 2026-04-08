@@ -9,3 +9,6 @@ coverage.out
 _site/
 web/node_modules/
 web/dist/
+docs/node_modules/
+docs/.vitepress/dist/
+docs/.vitepress/cache/
