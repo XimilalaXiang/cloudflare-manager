@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/accounts"
+	"github.com/cloudflare/cloudflare-go/v6/option"
 	"github.com/ximilala/cloudflare-manager/internal/database"
 	"github.com/ximilala/cloudflare-manager/internal/models"
 	"github.com/ximilala/cloudflare-manager/pkg/crypto"
@@ -124,7 +126,7 @@ func (s *AccountService) Verify(id uint) (string, error) {
 	return "active", nil
 }
 
-func (s *AccountService) GetCFClient(accountID uint) (*cloudflare.API, *models.Account, error) {
+func (s *AccountService) GetCFClient(accountID uint) (*cloudflare.Client, *models.Account, error) {
 	account, err := s.GetByID(accountID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("account not found: %w", err)
@@ -133,19 +135,15 @@ func (s *AccountService) GetCFClient(accountID uint) (*cloudflare.API, *models.A
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to decrypt token: %w", err)
 	}
-	api, err := cloudflare.NewWithAPIToken(token)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create CF client: %w", err)
-	}
-	return api, account, nil
+	client := cloudflare.NewClient(option.WithAPIToken(token))
+	return client, account, nil
 }
 
 func (s *AccountService) verifyToken(token, accountID string) error {
-	api, err := cloudflare.NewWithAPIToken(token)
-	if err != nil {
-		return err
-	}
-	_, _, err = api.Account(context.Background(), accountID)
+	client := cloudflare.NewClient(option.WithAPIToken(token))
+	_, err := client.Accounts.Get(context.Background(), accounts.AccountGetParams{
+		AccountID: cloudflare.F(accountID),
+	})
 	return err
 }
 

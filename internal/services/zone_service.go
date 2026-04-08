@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/dns"
+	"github.com/cloudflare/cloudflare-go/v6/zones"
 )
 
 type ZoneService struct {
@@ -26,48 +28,55 @@ type ZoneInfo struct {
 }
 
 type DNSRecordInfo struct {
-	ID       string `json:"id"`
-	Type     string `json:"type"`
-	Name     string `json:"name"`
-	Content  string `json:"content"`
-	TTL      int    `json:"ttl"`
-	Proxied  *bool  `json:"proxied"`
+	ID       string  `json:"id"`
+	Type     string  `json:"type"`
+	Name     string  `json:"name"`
+	Content  string  `json:"content"`
+	TTL      int     `json:"ttl"`
+	Proxied  *bool   `json:"proxied"`
 	Priority *uint16 `json:"priority,omitempty"`
 }
 
 func (s *ZoneService) ListZones(accountID uint) ([]ZoneInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	zones, err := api.ListZonesContext(context.Background(), cloudflare.WithZoneFilters("", account.AccountID, ""))
-	if err != nil {
-		return nil, fmt.Errorf("failed to list zones: %w", err)
-	}
+	iter := client.Zones.ListAutoPaging(context.Background(), zones.ZoneListParams{
+		Account: cloudflare.F(zones.ZoneListParamsAccount{
+			ID: cloudflare.F(account.AccountID),
+		}),
+	})
 
-	result := make([]ZoneInfo, 0, len(zones.Result))
-	for _, z := range zones.Result {
+	var result []ZoneInfo
+	for iter.Next() {
+		z := iter.Current()
 		result = append(result, ZoneInfo{
 			ID:                z.ID,
 			Name:              z.Name,
-			Status:            z.Status,
+			Status:            string(z.Status),
 			Paused:            z.Paused,
 			NameServers:       z.NameServers,
-			OriginalNS:        z.OriginalNS,
+			OriginalNS:        z.OriginalNameServers,
 			OriginalRegistrar: z.OriginalRegistrar,
 		})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list zones: %w", err)
 	}
 	return result, nil
 }
 
 func (s *ZoneService) GetZone(accountID uint, zoneID string) (*ZoneInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	z, err := api.ZoneDetails(context.Background(), zoneID)
+	z, err := client.Zones.Get(context.Background(), zones.ZoneGetParams{
+		ZoneID: cloudflare.F(zoneID),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get zone: %w", err)
 	}
@@ -75,37 +84,43 @@ func (s *ZoneService) GetZone(accountID uint, zoneID string) (*ZoneInfo, error) 
 	return &ZoneInfo{
 		ID:                z.ID,
 		Name:              z.Name,
-		Status:            z.Status,
+		Status:            string(z.Status),
 		Paused:            z.Paused,
 		NameServers:       z.NameServers,
-		OriginalNS:        z.OriginalNS,
+		OriginalNS:        z.OriginalNameServers,
 		OriginalRegistrar: z.OriginalRegistrar,
 	}, nil
 }
 
 func (s *ZoneService) ListDNSRecords(accountID uint, zoneID string) ([]DNSRecordInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	records, _, err := api.ListDNSRecords(context.Background(), rc, cloudflare.ListDNSRecordsParams{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list DNS records: %w", err)
-	}
+	iter := client.DNS.Records.ListAutoPaging(context.Background(), dns.RecordListParams{
+		ZoneID: cloudflare.F(zoneID),
+	})
 
-	result := make([]DNSRecordInfo, 0, len(records))
-	for _, r := range records {
-		result = append(result, DNSRecordInfo{
-			ID:       r.ID,
-			Type:     r.Type,
-			Name:     r.Name,
-			Content:  r.Content,
-			TTL:      r.TTL,
-			Proxied:  r.Proxied,
-			Priority: r.Priority,
-		})
+	var result []DNSRecordInfo
+	for iter.Next() {
+		r := iter.Current()
+		ttl := 0
+		if r.TTL != 0 {
+			ttl = int(r.TTL)
+		}
+		info := DNSRecordInfo{
+			ID:      r.ID,
+			Type:    string(r.Type),
+			Name:    r.Name,
+			Content: r.Content,
+			TTL:     ttl,
+			Proxied: &r.Proxied,
+		}
+		result = append(result, info)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list DNS records: %w", err)
 	}
 	return result, nil
 }
@@ -120,36 +135,40 @@ type CreateDNSRecordRequest struct {
 }
 
 func (s *ZoneService) CreateDNSRecord(accountID uint, zoneID string, req CreateDNSRecordRequest) (*DNSRecordInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	params := cloudflare.CreateDNSRecordParams{
-		Type:    req.Type,
-		Name:    req.Name,
-		Content: req.Content,
-		TTL:     req.TTL,
-		Proxied: req.Proxied,
+	body := dns.RecordNewParamsBody{
+		Name:    cloudflare.F(req.Name),
+		Type:    cloudflare.F(dns.RecordNewParamsBodyType(req.Type)),
+		Content: cloudflare.F(req.Content),
+		TTL:     cloudflare.F(dns.TTL(req.TTL)),
+	}
+	if req.Proxied != nil {
+		body.Proxied = cloudflare.F(*req.Proxied)
 	}
 	if req.Priority != nil {
-		params.Priority = req.Priority
+		body.Priority = cloudflare.F(float64(*req.Priority))
 	}
 
-	record, err := api.CreateDNSRecord(context.Background(), rc, params)
+	record, err := client.DNS.Records.New(context.Background(), dns.RecordNewParams{
+		ZoneID: cloudflare.F(zoneID),
+		Body:   body,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DNS record: %w", err)
 	}
 
+	proxied := record.Proxied
 	return &DNSRecordInfo{
-		ID:       record.ID,
-		Type:     record.Type,
-		Name:     record.Name,
-		Content:  record.Content,
-		TTL:      record.TTL,
-		Proxied:  record.Proxied,
-		Priority: record.Priority,
+		ID:      record.ID,
+		Type:    string(record.Type),
+		Name:    record.Name,
+		Content: record.Content,
+		TTL:     int(record.TTL),
+		Proxied: &proxied,
 	}, nil
 }
 
@@ -162,44 +181,49 @@ type UpdateDNSRecordRequest struct {
 }
 
 func (s *ZoneService) UpdateDNSRecord(accountID uint, zoneID, recordID string, req UpdateDNSRecordRequest) (*DNSRecordInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	params := cloudflare.UpdateDNSRecordParams{
-		ID:      recordID,
-		Type:    req.Type,
-		Name:    req.Name,
-		Content: req.Content,
-		TTL:     req.TTL,
-		Proxied: req.Proxied,
+	body := dns.RecordUpdateParamsBody{
+		Name:    cloudflare.F(req.Name),
+		Type:    cloudflare.F(dns.RecordUpdateParamsBodyType(req.Type)),
+		Content: cloudflare.F(req.Content),
+		TTL:     cloudflare.F(dns.TTL(req.TTL)),
+	}
+	if req.Proxied != nil {
+		body.Proxied = cloudflare.F(*req.Proxied)
 	}
 
-	record, err := api.UpdateDNSRecord(context.Background(), rc, params)
+	record, err := client.DNS.Records.Update(context.Background(), recordID, dns.RecordUpdateParams{
+		ZoneID: cloudflare.F(zoneID),
+		Body:   body,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update DNS record: %w", err)
 	}
 
+	proxied := record.Proxied
 	return &DNSRecordInfo{
 		ID:      record.ID,
-		Type:    record.Type,
+		Type:    string(record.Type),
 		Name:    record.Name,
 		Content: record.Content,
-		TTL:     record.TTL,
-		Proxied: record.Proxied,
+		TTL:     int(record.TTL),
+		Proxied: &proxied,
 	}, nil
 }
 
 func (s *ZoneService) DeleteDNSRecord(accountID uint, zoneID, recordID string) error {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	err = api.DeleteDNSRecord(context.Background(), rc, recordID)
+	_, err = client.DNS.Records.Delete(context.Background(), recordID, dns.RecordDeleteParams{
+		ZoneID: cloudflare.F(zoneID),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete DNS record: %w", err)
 	}

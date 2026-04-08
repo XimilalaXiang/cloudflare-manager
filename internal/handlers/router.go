@@ -55,13 +55,15 @@ func SetupRouter(
 
 			cf := auth.Group("/cf/:accountId")
 			{
-				workers := cf.Group("/workers")
-				{
-					workers.GET("", workerHandler.List)
-					workers.GET("/:scriptName", workerHandler.GetCode)
-					workers.POST("", workerHandler.Deploy)
-					workers.DELETE("/:scriptName", workerHandler.Delete)
-				}
+			workers := cf.Group("/workers")
+			{
+				workers.GET("", workerHandler.List)
+				workers.GET("/:scriptName", workerHandler.GetCode)
+				workers.POST("", workerHandler.Deploy)
+				workers.DELETE("/:scriptName", workerHandler.Delete)
+				workers.GET("/:scriptName/versions", workerHandler.ListVersions)
+				workers.GET("/:scriptName/deployments", workerHandler.GetDeployments)
+			}
 
 				zones := cf.Group("/zones")
 				{

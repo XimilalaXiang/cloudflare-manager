@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/pages"
 )
 
 type PagesService struct {
@@ -40,42 +41,45 @@ type CreatePagesProjectRequest struct {
 }
 
 func (s *PagesService) ListProjects(accountID uint) ([]PagesProjectInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	projects, _, err := api.ListPagesProjects(context.Background(), rc, cloudflare.ListPagesProjectsParams{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list pages projects: %w", err)
-	}
+	iter := client.Pages.Projects.ListAutoPaging(context.Background(), pages.ProjectListParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 
-	result := make([]PagesProjectInfo, 0, len(projects))
-	for _, p := range projects {
+	var result []PagesProjectInfo
+	for iter.Next() {
+		p := iter.Current()
 		info := PagesProjectInfo{
 			Name:             p.Name,
 			ID:               p.ID,
-			SubDomain:        p.SubDomain,
+			SubDomain:        p.Subdomain,
 			Domains:          p.Domains,
 			ProductionBranch: p.ProductionBranch,
 		}
-		if p.CreatedOn != nil {
+		if !p.CreatedOn.IsZero() {
 			info.CreatedOn = p.CreatedOn.Format("2006-01-02T15:04:05Z")
 		}
 		result = append(result, info)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list pages projects: %w", err)
 	}
 	return result, nil
 }
 
 func (s *PagesService) GetProject(accountID uint, projectName string) (*PagesProjectInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	p, err := api.GetPagesProject(context.Background(), rc, projectName)
+	p, err := client.Pages.Projects.Get(context.Background(), projectName, pages.ProjectGetParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get pages project: %w", err)
 	}
@@ -83,29 +87,32 @@ func (s *PagesService) GetProject(accountID uint, projectName string) (*PagesPro
 	info := &PagesProjectInfo{
 		Name:             p.Name,
 		ID:               p.ID,
-		SubDomain:        p.SubDomain,
+		SubDomain:        p.Subdomain,
 		Domains:          p.Domains,
 		ProductionBranch: p.ProductionBranch,
 	}
-	if p.CreatedOn != nil {
+	if !p.CreatedOn.IsZero() {
 		info.CreatedOn = p.CreatedOn.Format("2006-01-02T15:04:05Z")
 	}
 	return info, nil
 }
 
 func (s *PagesService) CreateProject(accountID uint, req CreatePagesProjectRequest) (*PagesProjectInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	params := cloudflare.CreatePagesProjectParams{
-		Name:             req.Name,
-		ProductionBranch: req.ProductionBranch,
+	branch := req.ProductionBranch
+	if branch == "" {
+		branch = "main"
 	}
 
-	p, err := api.CreatePagesProject(context.Background(), rc, params)
+	p, err := client.Pages.Projects.New(context.Background(), pages.ProjectNewParams{
+		AccountID:        cloudflare.F(account.AccountID),
+		Name:             cloudflare.F(req.Name),
+		ProductionBranch: cloudflare.F(branch),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create pages project: %w", err)
 	}
@@ -113,24 +120,25 @@ func (s *PagesService) CreateProject(accountID uint, req CreatePagesProjectReque
 	info := &PagesProjectInfo{
 		Name:             p.Name,
 		ID:               p.ID,
-		SubDomain:        p.SubDomain,
+		SubDomain:        p.Subdomain,
 		Domains:          p.Domains,
 		ProductionBranch: p.ProductionBranch,
 	}
-	if p.CreatedOn != nil {
+	if !p.CreatedOn.IsZero() {
 		info.CreatedOn = p.CreatedOn.Format("2006-01-02T15:04:05Z")
 	}
 	return info, nil
 }
 
 func (s *PagesService) DeleteProject(accountID uint, projectName string) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	err = api.DeletePagesProject(context.Background(), rc, projectName)
+	_, err = client.Pages.Projects.Delete(context.Background(), projectName, pages.ProjectDeleteParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete pages project: %w", err)
 	}
@@ -138,48 +146,45 @@ func (s *PagesService) DeleteProject(accountID uint, projectName string) error {
 }
 
 func (s *PagesService) ListDeployments(accountID uint, projectName string) ([]PagesDeploymentInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	deployments, _, err := api.ListPagesDeployments(context.Background(), rc, cloudflare.ListPagesDeploymentsParams{
-		ProjectName: projectName,
+	iter := client.Pages.Projects.Deployments.ListAutoPaging(context.Background(), projectName, pages.ProjectDeploymentListParams{
+		AccountID: cloudflare.F(account.AccountID),
 	})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list deployments: %w", err)
-	}
 
-	result := make([]PagesDeploymentInfo, 0, len(deployments))
-	for _, d := range deployments {
+	var result []PagesDeploymentInfo
+	for iter.Next() {
+		d := iter.Current()
 		info := PagesDeploymentInfo{
 			ID:          d.ID,
 			ShortID:     d.ShortID,
 			ProjectName: d.ProjectName,
-			Environment: d.Environment,
+			Environment: string(d.Environment),
 			URL:         d.URL,
-			LatestStage: d.LatestStage.Name + ": " + d.LatestStage.Status,
+			LatestStage: string(d.LatestStage.Name) + ": " + string(d.LatestStage.Status),
 		}
-		if d.CreatedOn != nil {
+		if !d.CreatedOn.IsZero() {
 			info.CreatedOn = d.CreatedOn.Format("2006-01-02T15:04:05Z")
 		}
 		result = append(result, info)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list deployments: %w", err)
 	}
 	return result, nil
 }
 
 func (s *PagesService) DeleteDeployment(accountID uint, projectName, deploymentID string) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	err = api.DeletePagesDeployment(context.Background(), rc, cloudflare.DeletePagesDeploymentParams{
-		ProjectName:  projectName,
-		DeploymentID: deploymentID,
-		Force:        true,
+	_, err = client.Pages.Projects.Deployments.Delete(context.Background(), projectName, deploymentID, pages.ProjectDeploymentDeleteParams{
+		AccountID: cloudflare.F(account.AccountID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete deployment: %w", err)

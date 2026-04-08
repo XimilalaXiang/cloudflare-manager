@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/workers"
 )
 
 type RouteService struct {
@@ -22,23 +23,24 @@ type WorkerRouteInfo struct {
 }
 
 func (s *RouteService) ListRoutes(accountID uint, zoneID string) ([]WorkerRouteInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	resp, err := api.ListWorkerRoutes(context.Background(), rc, cloudflare.ListWorkerRoutesParams{})
+	page, err := client.Workers.Routes.List(context.Background(), workers.RouteListParams{
+		ZoneID: cloudflare.F(zoneID),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to list worker routes: %w", err)
 	}
 
-	routes := make([]WorkerRouteInfo, 0, len(resp.Routes))
-	for _, r := range resp.Routes {
+	var routes []WorkerRouteInfo
+	for _, r := range page.Result {
 		routes = append(routes, WorkerRouteInfo{
 			ID:      r.ID,
 			Pattern: r.Pattern,
-			Script:  r.ScriptName,
+			Script:  r.Script,
 		})
 	}
 	return routes, nil
@@ -50,15 +52,15 @@ type CreateRouteRequest struct {
 }
 
 func (s *RouteService) CreateRoute(accountID uint, zoneID string, req CreateRouteRequest) (*WorkerRouteInfo, error) {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	resp, err := api.CreateWorkerRoute(context.Background(), rc, cloudflare.CreateWorkerRouteParams{
-		Pattern: req.Pattern,
-		Script:  req.Script,
+	resp, err := client.Workers.Routes.New(context.Background(), workers.RouteNewParams{
+		ZoneID:  cloudflare.F(zoneID),
+		Pattern: cloudflare.F(req.Pattern),
+		Script:  cloudflare.F(req.Script),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create worker route: %w", err)
@@ -72,13 +74,14 @@ func (s *RouteService) CreateRoute(accountID uint, zoneID string, req CreateRout
 }
 
 func (s *RouteService) DeleteRoute(accountID uint, zoneID, routeID string) error {
-	api, _, err := s.accountService.GetCFClient(accountID)
+	client, _, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.ZoneIdentifier(zoneID)
-	_, err = api.DeleteWorkerRoute(context.Background(), rc, routeID)
+	_, err = client.Workers.Routes.Delete(context.Background(), routeID, workers.RouteDeleteParams{
+		ZoneID: cloudflare.F(zoneID),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete worker route: %w", err)
 	}

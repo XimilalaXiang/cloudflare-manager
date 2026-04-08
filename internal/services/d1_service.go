@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/d1"
 )
 
 type D1Service struct {
@@ -25,31 +26,30 @@ type D1DatabaseInfo struct {
 }
 
 func (s *D1Service) ListDatabases(accountID uint) ([]D1DatabaseInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	dbs, _, err := api.ListD1Databases(context.Background(), rc, cloudflare.ListD1DatabasesParams{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list D1 databases: %w", err)
-	}
+	iter := client.D1.Database.ListAutoPaging(context.Background(), d1.DatabaseListParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 
-	result := make([]D1DatabaseInfo, 0, len(dbs))
-	for _, db := range dbs {
-		createdAt := ""
-		if db.CreatedAt != nil {
-			createdAt = db.CreatedAt.Format("2006-01-02T15:04:05Z")
+	var result []D1DatabaseInfo
+	for iter.Next() {
+		db := iter.Current()
+		info := D1DatabaseInfo{
+			UUID:    db.UUID,
+			Name:    db.Name,
+			Version: db.Version,
 		}
-		result = append(result, D1DatabaseInfo{
-			UUID:      db.UUID,
-			Name:      db.Name,
-			Version:   db.Version,
-			NumTables: db.NumTables,
-			FileSize:  db.FileSize,
-			CreatedAt: createdAt,
-		})
+		if !db.CreatedAt.IsZero() {
+			info.CreatedAt = db.CreatedAt.Format("2006-01-02T15:04:05Z")
+		}
+		result = append(result, info)
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list D1 databases: %w", err)
 	}
 	return result, nil
 }
@@ -59,14 +59,14 @@ type CreateD1DatabaseRequest struct {
 }
 
 func (s *D1Service) CreateDatabase(accountID uint, name string) (*D1DatabaseInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	db, err := api.CreateD1Database(context.Background(), rc, cloudflare.CreateD1DatabaseParams{
-		Name: name,
+	db, err := client.D1.Database.New(context.Background(), d1.DatabaseNewParams{
+		AccountID: cloudflare.F(account.AccountID),
+		Name:      cloudflare.F(name),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create D1 database: %w", err)
@@ -79,13 +79,14 @@ func (s *D1Service) CreateDatabase(accountID uint, name string) (*D1DatabaseInfo
 }
 
 func (s *D1Service) DeleteDatabase(accountID uint, databaseID string) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	err = api.DeleteD1Database(context.Background(), rc, databaseID)
+	_, err = client.D1.Database.Delete(context.Background(), databaseID, d1.DatabaseDeleteParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete D1 database: %w", err)
 	}
@@ -98,19 +99,25 @@ type D1QueryRequest struct {
 }
 
 func (s *D1Service) QueryDatabase(accountID uint, databaseID string, sql string, params []string) (interface{}, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	result, err := api.QueryD1Database(context.Background(), rc, cloudflare.QueryD1DatabaseParams{
-		DatabaseID: databaseID,
-		SQL:        sql,
-		Parameters: params,
+	queryBody := d1.DatabaseQueryParamsBody{
+		Sql: cloudflare.F(sql),
+	}
+	if len(params) > 0 {
+		queryBody.Params = cloudflare.F[interface{}](params)
+	}
+
+	page, err := client.D1.Database.Query(context.Background(), databaseID, d1.DatabaseQueryParams{
+		AccountID: cloudflare.F(account.AccountID),
+		Body:      queryBody,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to query D1 database: %w", err)
 	}
-	return result, nil
+
+	return page.Result, nil
 }

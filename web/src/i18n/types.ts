@@ -116,6 +116,22 @@ export interface Translations {
     content: string
     moduleFormat: string
     deploying: string
+    versions: string
+    viewVersions: string
+    hideVersions: string
+    loadingVersions: string
+    noVersions: string
+    versionNumber: string
+    versionId: string
+    author: string
+    source: string
+    deployment: string
+    loadingDeployment: string
+    noDeployment: string
+    deploymentStrategy: string
+    deploymentVersions: string
+    percentage: string
+    message: string
   }
   zones: {
     title: string

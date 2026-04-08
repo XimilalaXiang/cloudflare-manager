@@ -81,3 +81,35 @@ func (h *WorkerHandler) Delete(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "worker deleted successfully"})
 }
+
+func (h *WorkerHandler) ListVersions(c *gin.Context) {
+	accountID, err := strconv.ParseUint(c.Param("accountId"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+		return
+	}
+
+	scriptName := c.Param("scriptName")
+	versions, err := h.service.ListVersions(uint(accountID), scriptName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, versions)
+}
+
+func (h *WorkerHandler) GetDeployments(c *gin.Context) {
+	accountID, err := strconv.ParseUint(c.Param("accountId"), 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid account id"})
+		return
+	}
+
+	scriptName := c.Param("scriptName")
+	deployment, err := h.service.GetDeployments(uint(accountID), scriptName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, deployment)
+}

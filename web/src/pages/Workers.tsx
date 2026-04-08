@@ -4,6 +4,15 @@ import { useI18n } from '../i18n'
 
 interface Account { id: number; name: string }
 interface Worker { id: string; size: number; created_on: string; modified_on: string }
+interface WorkerVersion {
+  id: string; number: number; created_on: string; modified_on: string
+  author_email: string; source: string
+}
+interface DeploymentVersion { version_id: string; percentage: number }
+interface WorkerDeployment {
+  id: string; source: string; strategy: string; author_email: string
+  created_on: string; versions: DeploymentVersion[]; message: string
+}
 
 export default function Workers() {
   const { t } = useI18n()
@@ -20,6 +29,12 @@ export default function Workers() {
   const [deployForm, setDeployForm] = useState({ script_name: '', content: '', module: true })
   const [deploying, setDeploying] = useState(false)
   const [deployError, setDeployError] = useState('')
+
+  const [expandedWorker, setExpandedWorker] = useState<string | null>(null)
+  const [versions, setVersions] = useState<WorkerVersion[]>([])
+  const [loadingVersions, setLoadingVersions] = useState(false)
+  const [deployment, setDeployment] = useState<WorkerDeployment | null>(null)
+  const [loadingDeployment, setLoadingDeployment] = useState(false)
 
   useEffect(() => {
     api.get('/accounts').then((res) => {
@@ -80,6 +95,34 @@ export default function Workers() {
       setDeployError(msg)
     } finally {
       setDeploying(false)
+    }
+  }
+
+  const toggleVersions = async (scriptName: string) => {
+    if (expandedWorker === scriptName) {
+      setExpandedWorker(null)
+      setVersions([])
+      setDeployment(null)
+      return
+    }
+    setExpandedWorker(scriptName)
+    setLoadingVersions(true)
+    setLoadingDeployment(true)
+    try {
+      const res = await api.get(`/cf/${selectedAccount}/workers/${scriptName}/versions`)
+      setVersions(res.data || [])
+    } catch {
+      setVersions([])
+    } finally {
+      setLoadingVersions(false)
+    }
+    try {
+      const res = await api.get(`/cf/${selectedAccount}/workers/${scriptName}/deployments`)
+      setDeployment(res.data || null)
+    } catch {
+      setDeployment(null)
+    } finally {
+      setLoadingDeployment(false)
     }
   }
 
@@ -193,13 +236,19 @@ export default function Workers() {
                     <p><span className="font-bold">{t.workers.modified}:</span> {w.modified_on ? new Date(w.modified_on).toLocaleDateString() : '-'}</p>
                   </div>
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
+                <div className="flex gap-2 flex-shrink-0 flex-wrap">
                   <button
                     onClick={() => handleViewCode(w.id)}
                     disabled={loadingCode}
                     className="font-bold uppercase tracking-widest text-xs bg-[#3a86ff] text-white px-3 py-2 border-2 border-black hover:bg-[#2563eb] transition-colors disabled:opacity-60"
                   >
                     {t.workers.viewCode}
+                  </button>
+                  <button
+                    onClick={() => toggleVersions(w.id)}
+                    className="font-bold uppercase tracking-widest text-xs bg-[#8338ec] text-white px-3 py-2 border-2 border-black hover:bg-[#6b21a8] transition-colors"
+                  >
+                    {expandedWorker === w.id ? t.workers.hideVersions : t.workers.viewVersions}
                   </button>
                   <button
                     onClick={() => handleDelete(w.id)}
@@ -209,6 +258,84 @@ export default function Workers() {
                   </button>
                 </div>
               </div>
+
+              {expandedWorker === w.id && (
+                <div className="border-t-2 md:border-t-4 border-black">
+                  {/* Deployment Info */}
+                  <div className="p-4 md:p-6 bg-[#f0f4ff] border-b-2 border-black">
+                    <h4 className="font-black text-sm uppercase tracking-widest mb-3">{t.workers.deployment}</h4>
+                    {loadingDeployment ? (
+                      <p className="font-mono text-xs">{t.workers.loadingDeployment}</p>
+                    ) : !deployment ? (
+                      <p className="font-mono text-xs text-gray-500">{t.workers.noDeployment}</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="font-mono text-xs flex flex-wrap gap-x-4 gap-y-1">
+                          <p><span className="font-bold">{t.workers.deploymentStrategy}:</span> <span className="bg-[#8338ec] text-white px-1.5 py-0.5 text-[10px] font-bold uppercase">{deployment.strategy}</span></p>
+                          <p><span className="font-bold">{t.workers.source}:</span> {deployment.source}</p>
+                          {deployment.author_email && <p><span className="font-bold">{t.workers.author}:</span> {deployment.author_email}</p>}
+                          <p><span className="font-bold">{t.workers.created}:</span> {new Date(deployment.created_on).toLocaleString()}</p>
+                          {deployment.message && <p><span className="font-bold">{t.workers.message}:</span> {deployment.message}</p>}
+                        </div>
+                        {deployment.versions && deployment.versions.length > 0 && (
+                          <div className="mt-2">
+                            <p className="font-bold text-xs mb-1">{t.workers.deploymentVersions}:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {deployment.versions.map((dv) => (
+                                <span key={dv.version_id} className="inline-flex items-center gap-1.5 bg-white border-2 border-black px-2 py-1 font-mono text-[10px]">
+                                  <span className="font-bold truncate max-w-[120px]" title={dv.version_id}>{dv.version_id.slice(0, 8)}...</span>
+                                  <span className="bg-[#06d6a0] text-black px-1 py-0.5 font-bold">{dv.percentage}%</span>
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Version History */}
+                  <div className="p-4 md:p-6 bg-[#f8f9fa]">
+                    <h4 className="font-black text-sm uppercase tracking-widest mb-3">{t.workers.versions}</h4>
+                    {loadingVersions ? (
+                      <p className="font-mono text-xs">{t.workers.loadingVersions}</p>
+                    ) : versions.length === 0 ? (
+                      <p className="font-mono text-xs text-gray-500">{t.workers.noVersions}</p>
+                    ) : (
+                      <div className="overflow-x-auto -mx-4 md:-mx-6">
+                        <table className="w-full text-left min-w-[600px]">
+                          <thead>
+                            <tr className="border-b-2 border-black">
+                              <th className="font-black text-xs uppercase tracking-widest px-4 md:px-6 py-2">{t.workers.versionNumber}</th>
+                              <th className="font-black text-xs uppercase tracking-widest px-2 py-2">{t.workers.versionId}</th>
+                              <th className="font-black text-xs uppercase tracking-widest px-2 py-2">{t.workers.author}</th>
+                              <th className="font-black text-xs uppercase tracking-widest px-2 py-2">{t.workers.source}</th>
+                              <th className="font-black text-xs uppercase tracking-widest px-2 py-2">{t.workers.created}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {versions.map((v, idx) => (
+                              <tr key={v.id} className={`border-b border-gray-200 ${idx === 0 ? 'bg-[#ffbe0b]/10' : ''}`}>
+                                <td className="font-mono text-xs px-4 md:px-6 py-2.5">
+                                  <span className="bg-black text-white px-2 py-0.5 font-bold">#{v.number}</span>
+                                </td>
+                                <td className="font-mono text-[10px] px-2 py-2.5 truncate max-w-[150px]" title={v.id}>{v.id.slice(0, 12)}...</td>
+                                <td className="font-mono text-xs px-2 py-2.5">{v.author_email || '-'}</td>
+                                <td className="font-mono text-xs px-2 py-2.5">
+                                  {v.source ? (
+                                    <span className="bg-[#e9ecef] px-1.5 py-0.5 border border-black text-[10px] uppercase font-bold">{v.source}</span>
+                                  ) : '-'}
+                                </td>
+                                <td className="font-mono text-xs px-2 py-2.5">{v.created_on ? new Date(v.created_on).toLocaleString() : '-'}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </div>

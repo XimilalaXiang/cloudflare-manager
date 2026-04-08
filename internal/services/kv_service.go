@@ -3,8 +3,11 @@ package services
 import (
 	"context"
 	"fmt"
+	"io"
 
-	"github.com/cloudflare/cloudflare-go"
+	cloudflare "github.com/cloudflare/cloudflare-go/v6"
+	"github.com/cloudflare/cloudflare-go/v6/kv"
+	"github.com/cloudflare/cloudflare-go/v6/shared"
 )
 
 type KVService struct {
@@ -21,23 +24,25 @@ type KVNamespaceInfo struct {
 }
 
 func (s *KVService) ListNamespaces(accountID uint) ([]KVNamespaceInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	resp, _, err := api.ListWorkersKVNamespaces(context.Background(), rc, cloudflare.ListWorkersKVNamespacesParams{})
-	if err != nil {
-		return nil, fmt.Errorf("failed to list KV namespaces: %w", err)
-	}
+	iter := client.KV.Namespaces.ListAutoPaging(context.Background(), kv.NamespaceListParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 
-	namespaces := make([]KVNamespaceInfo, 0, len(resp))
-	for _, ns := range resp {
+	var namespaces []KVNamespaceInfo
+	for iter.Next() {
+		ns := iter.Current()
 		namespaces = append(namespaces, KVNamespaceInfo{
 			ID:    ns.ID,
 			Title: ns.Title,
 		})
+	}
+	if err := iter.Err(); err != nil {
+		return nil, fmt.Errorf("failed to list KV namespaces: %w", err)
 	}
 	return namespaces, nil
 }
@@ -47,33 +52,34 @@ type CreateKVNamespaceRequest struct {
 }
 
 func (s *KVService) CreateNamespace(accountID uint, title string) (*KVNamespaceInfo, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	resp, err := api.CreateWorkersKVNamespace(context.Background(), rc, cloudflare.CreateWorkersKVNamespaceParams{
-		Title: title,
+	ns, err := client.KV.Namespaces.New(context.Background(), kv.NamespaceNewParams{
+		AccountID: cloudflare.F(account.AccountID),
+		Title:     cloudflare.F(title),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create KV namespace: %w", err)
 	}
 
 	return &KVNamespaceInfo{
-		ID:    resp.Result.ID,
-		Title: resp.Result.Title,
+		ID:    ns.ID,
+		Title: ns.Title,
 	}, nil
 }
 
 func (s *KVService) DeleteNamespace(accountID uint, namespaceID string) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	_, err = api.DeleteWorkersKVNamespace(context.Background(), rc, namespaceID)
+	_, err = client.KV.Namespaces.Delete(context.Background(), namespaceID, kv.NamespaceDeleteParams{
+		AccountID: cloudflare.F(account.AccountID),
+	})
 	if err != nil {
 		return fmt.Errorf("failed to delete KV namespace: %w", err)
 	}
@@ -86,65 +92,67 @@ type KVKeyInfo struct {
 }
 
 func (s *KVService) ListKeys(accountID uint, namespaceID string, cursor string, limit int) ([]KVKeyInfo, string, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, "", err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	params := cloudflare.ListWorkersKVsParams{
-		NamespaceID: namespaceID,
+	params := kv.NamespaceKeyListParams{
+		AccountID: cloudflare.F(account.AccountID),
 	}
 	if limit > 0 {
-		params.Limit = limit
+		params.Limit = cloudflare.F(float64(limit))
 	}
 	if cursor != "" {
-		params.Cursor = cursor
+		params.Cursor = cloudflare.F(cursor)
 	}
 
-	resp, err := api.ListWorkersKVKeys(context.Background(), rc, params)
+	page, err := client.KV.Namespaces.Keys.List(context.Background(), namespaceID, params)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to list KV keys: %w", err)
 	}
 
-	keys := make([]KVKeyInfo, 0, len(resp.Result))
-	for _, k := range resp.Result {
+	var keys []KVKeyInfo
+	for _, k := range page.Result {
 		keys = append(keys, KVKeyInfo{
 			Name:       k.Name,
-			Expiration: k.Expiration,
+			Expiration: int(k.Expiration),
 		})
 	}
-	return keys, resp.Cursor, nil
+
+	nextCursor := ""
+	if page.ResultInfo.Cursor != "" {
+		nextCursor = page.ResultInfo.Cursor
+	}
+	return keys, nextCursor, nil
 }
 
 func (s *KVService) GetValue(accountID uint, namespaceID, key string) ([]byte, error) {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	value, err := api.GetWorkersKV(context.Background(), rc, cloudflare.GetWorkersKVParams{
-		NamespaceID: namespaceID,
-		Key:         key,
+	resp, err := client.KV.Namespaces.Values.Get(context.Background(), namespaceID, key, kv.NamespaceValueGetParams{
+		AccountID: cloudflare.F(account.AccountID),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get KV value: %w", err)
 	}
-	return value, nil
+	defer resp.Body.Close()
+
+	return io.ReadAll(resp.Body)
 }
 
 func (s *KVService) PutValue(accountID uint, namespaceID, key string, value []byte) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	_, err = api.WriteWorkersKVEntry(context.Background(), rc, cloudflare.WriteWorkersKVEntryParams{
-		NamespaceID: namespaceID,
-		Key:         key,
-		Value:       value,
+	_, err = client.KV.Namespaces.Values.Update(context.Background(), namespaceID, key, kv.NamespaceValueUpdateParams{
+		AccountID: cloudflare.F(account.AccountID),
+		Value:     cloudflare.F[kv.NamespaceValueUpdateParamsValueUnion](shared.UnionString(string(value))),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to put KV value: %w", err)
@@ -153,15 +161,13 @@ func (s *KVService) PutValue(accountID uint, namespaceID, key string, value []by
 }
 
 func (s *KVService) DeleteKey(accountID uint, namespaceID, key string) error {
-	api, account, err := s.accountService.GetCFClient(accountID)
+	client, account, err := s.accountService.GetCFClient(accountID)
 	if err != nil {
 		return err
 	}
 
-	rc := cloudflare.AccountIdentifier(account.AccountID)
-	_, err = api.DeleteWorkersKVEntry(context.Background(), rc, cloudflare.DeleteWorkersKVEntryParams{
-		NamespaceID: namespaceID,
-		Key:         key,
+	_, err = client.KV.Namespaces.Values.Delete(context.Background(), namespaceID, key, kv.NamespaceValueDeleteParams{
+		AccountID: cloudflare.F(account.AccountID),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete KV key: %w", err)
